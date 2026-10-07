@@ -1,4 +1,5 @@
-import { ExternalLink, Play, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, Play, FileText, TriangleAlert } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Project } from "@/data/projects";
 import { projects } from "@/data/projects";
@@ -10,13 +11,56 @@ type Props = {
   className?: string;
   /** Desktop gallery panels are absolutely stacked. */
   stacked?: boolean;
+  /** True when this panel is the one currently shown in the pinned stage. */
+  active?: boolean;
+  /** Only mount the live iframe in the pinned desktop stage. */
+  mountLive?: boolean;
 };
 
-export function ProjectPanel({ project, onPreview, className, stacked }: Props) {
+export function ProjectPanel({
+  project,
+  onPreview,
+  className,
+  stacked,
+  active = true,
+  mountLive = false,
+}: Props) {
+  const [loaded, setLoaded] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const wantsLive = mountLive && active && project.embeddable;
+
+  useEffect(() => {
+    if (!wantsLive) return;
+    setLoaded(false);
+    setBlocked(false);
+    const t = window.setTimeout(() => {
+      setLoaded((l) => {
+        if (!l) setBlocked(true);
+        return l;
+      });
+    }, 6000);
+    return () => window.clearTimeout(t);
+  }, [wantsLive, project.slug]);
+
+  const handleLoad = () => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      if (doc && doc.body && doc.body.childElementCount === 0) {
+        setBlocked(true);
+        return;
+      }
+    } catch {
+      /* cross-origin = actually loaded */
+    }
+    setLoaded(true);
+  };
+
   return (
     <article
       className={cn(
-        "group panel-metal hairline flex flex-col justify-between overflow-hidden rounded-xl p-6 sm:p-10",
+        "group panel-metal hairline relative flex flex-col justify-between overflow-hidden rounded-xl p-6 sm:p-10",
         "transition-[box-shadow,transform] duration-500 hover:-translate-y-1",
         stacked && "absolute inset-0 will-change-transform [transform-style:preserve-3d]",
         className,
@@ -25,15 +69,64 @@ export function ProjectPanel({ project, onPreview, className, stacked }: Props) 
       tabIndex={0}
       aria-label={`${project.title}, ${project.category}`}
     >
+      {/* ---------- BACKGROUND LAYER ---------- */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        {project.preview && (
+          <img
+            src={project.preview}
+            alt=""
+            className={cn(
+              "absolute inset-0 size-full object-cover object-top transition-opacity duration-700",
+              loaded && !blocked ? "opacity-0" : "opacity-100",
+            )}
+          />
+        )}
+
+        {wantsLive && !blocked && (
+          <iframe
+            ref={iframeRef}
+            key={project.slug}
+            src={project.url}
+            title={`${project.title} live background`}
+            loading="lazy"
+            onLoad={handleLoad}
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+            tabIndex={-1}
+            className={cn(
+              "absolute inset-0 size-full border-0 bg-white transition-opacity duration-700",
+              loaded ? "opacity-100" : "opacity-0",
+            )}
+          />
+        )}
+
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, oklch(0.15 0.02 260 / 88%) 0%, oklch(0.15 0.02 260 / 72%) 45%, oklch(0.15 0.02 260 / 92%) 100%)",
+          }}
+        />
+
+        {wantsLive && blocked && (
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur">
+            <TriangleAlert className="size-3 text-accent" />
+            Live embed blocked — showing preview
+          </div>
+        )}
+      </div>
+
+      {/* ---------- HOVER GLOW ---------- */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-within:opacity-100"
+        className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-within:opacity-100"
         style={{
           background: `radial-gradient(ellipse 60% 60% at 75% 20%, ${project.accent}22, transparent 65%)`,
         }}
       />
 
-      <div className="relative flex items-start justify-between gap-6">
+      {/* ---------- FOREGROUND ---------- */}
+      <div className="relative z-10 flex items-start justify-between gap-6">
         <div>
           <p className="eyebrow">{project.category}</p>
           <h3 className="mt-3 text-4xl leading-[0.95] font-semibold sm:text-6xl lg:text-7xl">
@@ -49,7 +142,7 @@ export function ProjectPanel({ project, onPreview, className, stacked }: Props) 
         </span>
       </div>
 
-      <div className="relative mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative z-10 mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <p className="max-w-xl text-base text-muted-foreground sm:text-lg">
             {project.overview}
@@ -89,7 +182,7 @@ export function ProjectPanel({ project, onPreview, className, stacked }: Props) 
         </dl>
       </div>
 
-      <div className="relative mt-8 flex flex-wrap items-center gap-3">
+      <div className="relative z-10 mt-8 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => onPreview(project)}

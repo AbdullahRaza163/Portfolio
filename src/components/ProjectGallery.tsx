@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/** Alternating fold directions so consecutive transitions stay distinguishable. */
 const exits: gsap.TweenVars[] = [
   { rotateX: 70, transformOrigin: "50% 0%", z: -420, opacity: 0 },
   { rotateY: -62, transformOrigin: "0% 50%", z: -380, opacity: 0 },
@@ -44,7 +43,9 @@ export function ProjectGallery({
       if (panels.length === 0) return;
 
       gsap.set(panels, { autoAlpha: 0, z: -240 });
-      panels.forEach((panel, index) => gsap.set(panel, { zIndex: panels.length - index }));
+      panels.forEach((panel, index) =>
+        gsap.set(panel, { zIndex: panels.length - index }),
+      );
       gsap.set(panels[0]!, { autoAlpha: 1, rotateX: 0, rotateY: 0, z: 0 });
 
       const tl = gsap.timeline({
@@ -60,7 +61,6 @@ export function ProjectGallery({
             const i = Math.round(self.progress * (panels.length - 1));
             setActive((prev) => (prev === i ? prev : i));
           },
-          onRefreshInit: () => triggerRef.current,
         },
       });
       triggerRef.current = tl.scrollTrigger ?? null;
@@ -71,22 +71,30 @@ export function ProjectGallery({
         const position = i * 1.2;
         tl.to(
           panel,
-          { ...exits[i % exits.length], autoAlpha: 0, ease: "power1.inOut", duration: 0.72 },
+          {
+            ...exits[i % exits.length],
+            autoAlpha: 0,
+            ease: "power1.inOut",
+            duration: 0.72,
+          },
           position,
-        )
-          .fromTo(
-            nextPanel,
-            { ...enters[i % enters.length], autoAlpha: 0, zIndex: panels.length + i + 1 },
-            {
-              rotateX: 0,
-              rotateY: 0,
-              z: 0,
-              autoAlpha: 1,
-              ease: "power1.out",
-              duration: 0.72,
-            },
-            position + 0.48,
-          );
+        ).fromTo(
+          nextPanel,
+          {
+            ...enters[i % enters.length],
+            autoAlpha: 0,
+            zIndex: panels.length + i + 1,
+          },
+          {
+            rotateX: 0,
+            rotateY: 0,
+            z: 0,
+            autoAlpha: 1,
+            ease: "power1.out",
+            duration: 0.72,
+          },
+          position + 0.48,
+        );
       });
     },
     { scope: wrapRef, dependencies: [pinned] },
@@ -116,9 +124,19 @@ export function ProjectGallery({
           className="scene-3d relative flex h-screen w-full items-center px-6 lg:px-14"
         >
           <div className="relative mx-auto h-[86vh] w-full max-w-[1500px] [transform-style:preserve-3d]">
-            {projects.map((project) => (
-              <div key={project.slug} data-panel className="absolute inset-0 [transform-style:preserve-3d]">
-                <ProjectPanel project={project} onPreview={onPreview} className="h-full" />
+            {projects.map((project, i) => (
+              <div
+                key={project.slug}
+                data-panel
+                className="absolute inset-0 [transform-style:preserve-3d]"
+              >
+                <ProjectPanel
+                  project={project}
+                  onPreview={onPreview}
+                  className="h-full"
+                  active={active === i}
+                  mountLive={pinned}
+                />
               </div>
             ))}
           </div>
@@ -136,13 +154,17 @@ export function ProjectGallery({
                 aria-current={active === i}
                 className={cn(
                   "group flex items-center gap-2 font-mono text-[11px] transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                  active === i ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  active === i
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <span
                   className={cn(
                     "h-px transition-all",
-                    active === i ? "w-8 bg-primary" : "w-4 bg-border group-hover:w-6",
+                    active === i
+                      ? "w-8 bg-primary"
+                      : "w-4 bg-border group-hover:w-6",
                   )}
                 />
                 {p.number}

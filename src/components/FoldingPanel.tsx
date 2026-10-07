@@ -28,19 +28,11 @@ const exitTo: Record<FoldAxis, gsap.TweenVars> = {
 type Props = {
   children: ReactNode;
   className?: string;
-  /** Direction the panel unfolds from. */
   from?: FoldAxis;
-  /** Direction the panel folds away towards. Set to "none" to keep it in place. */
   to?: FoldAxis | "none";
-  /** Scrub intensity, in seconds of catch-up. */
   scrub?: number;
 };
 
-/**
- * A surface that unfolds in 3D as it scrolls into view and folds away as it
- * leaves. Every tween is scrubbed to scroll position, so reversing the scroll
- * reverses the fold. Reduced-motion users get the panel with no transform.
- */
 export function FoldingPanel({
   children,
   className,
@@ -50,13 +42,14 @@ export function FoldingPanel({
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
+  const keepFlat = to === "none";
 
   useGSAP(
     () => {
       if (reduced || !ref.current) return;
       const el = ref.current;
 
-      gsap.fromTo(
+      const enterTween = gsap.fromTo(
         el,
         { ...enterFrom[from], opacity: 0.15 },
         {
@@ -71,22 +64,33 @@ export function FoldingPanel({
           scrollTrigger: {
             trigger: el,
             start: "top 88%",
-            end: "top 38%",
+            end: "top 45%",
             scrub,
             invalidateOnRefresh: true,
           },
         },
       );
 
+      // When this panel doesn't fold away, clear every transform once the
+      // enter animation finishes, and drop the containing-block hints.
+      // This is what lets position: sticky work for descendants.
+      if (keepFlat) {
+        enterTween.eventCallback("onComplete", () => {
+          gsap.set(el, {
+            clearProps: "transform,willChange,transformStyle",
+          });
+        });
+      }
+
       if (to !== "none") {
         gsap.to(el, {
           ...exitTo[to],
-          opacity: 0.1,
+          opacity: 0.35,
           ease: "none",
           scrollTrigger: {
             trigger: el,
-            start: "bottom 72%",
-            end: "bottom 8%",
+            start: "bottom 60%",
+            end: "bottom -20%",
             scrub,
             invalidateOnRefresh: true,
           },
@@ -99,7 +103,12 @@ export function FoldingPanel({
   return (
     <div
       ref={ref}
-      className={cn("will-change-transform [transform-style:preserve-3d]", className)}
+      className={cn(
+        keepFlat
+          ? "" // no transform hints when the panel stays flat — sticky needs this
+          : "will-change-transform [transform-style:preserve-3d]",
+        className,
+      )}
     >
       {children}
     </div>

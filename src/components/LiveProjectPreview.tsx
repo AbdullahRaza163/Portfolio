@@ -22,22 +22,31 @@ export function LiveProjectPreview({ project, onClose, onSelect }: Props) {
   const [blocked, setBlocked] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Reset state whenever the selected project changes, then arm a hard
+  // timeout that ALWAYS fires unless the iframe has actually loaded.
   useEffect(() => {
     if (!project) return;
+
     setLoaded(false);
     setBlocked(!project.embeddable);
     closeRef.current?.focus();
+
     if (!project.embeddable) return;
+
     const t = window.setTimeout(() => {
+      // If load hasn't happened by now, treat as blocked.
       setLoaded((isLoaded) => {
         if (!isLoaded) setBlocked(true);
         return isLoaded;
       });
-    }, 8000);
+    }, 6000);
+
     return () => window.clearTimeout(t);
   }, [project]);
 
+  // Keyboard close + lock body scroll.
   useEffect(() => {
     if (!project) return;
     const onKey = (e: KeyboardEvent) => {
@@ -57,6 +66,21 @@ export function LiveProjectPreview({ project, onClose, onSelect }: Props) {
   const prev = projects[(index - 1 + projects.length) % projects.length]!;
   const next = projects[(index + 1) % projects.length]!;
 
+  const handleLoad = () => {
+    // Frame-busting detection: if the frame reports "loaded" but has no
+    // accessible content, it's almost certainly blank/blocked.
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      if (doc && doc.body && doc.body.childElementCount === 0) {
+        setBlocked(true);
+        return;
+      }
+    } catch {
+      // Cross-origin — that's normal and means it actually loaded.
+    }
+    setLoaded(true);
+  };
+
   return (
     <div
       role="dialog"
@@ -69,12 +93,12 @@ export function LiveProjectPreview({ project, onClose, onSelect }: Props) {
           "mx-auto flex w-full flex-1 flex-col gap-3 transition-all duration-500",
           expanded ? "max-w-none" : "max-w-6xl",
         )}
-        style={{ animation: "none" }}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="eyebrow">
-              {project.number} / {String(projects.length).padStart(2, "0")} — {project.category}
+              {project.number} / {String(projects.length).padStart(2, "0")} —{" "}
+              {project.category}
             </p>
             <h2 className="text-2xl font-semibold sm:text-3xl">{project.title}</h2>
           </div>
@@ -116,13 +140,15 @@ export function LiveProjectPreview({ project, onClose, onSelect }: Props) {
         >
           {!blocked && (
             <iframe
+              ref={iframeRef}
               key={project.slug}
               src={project.url}
               title={`${project.title} live preview`}
               loading="lazy"
-              onLoad={() => setLoaded(true)}
-              referrerPolicy="no-referrer"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              onLoad={handleLoad}
+              referrerPolicy="strict-origin-when-cross-origin"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+              allow="clipboard-read; clipboard-write; fullscreen"
               className="size-full border-0 bg-white"
             />
           )}
@@ -141,8 +167,8 @@ export function LiveProjectPreview({ project, onClose, onSelect }: Props) {
                   {project.title} can&apos;t be embedded here
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  This site asks browsers not to display it inside another page. Nothing is
-                  broken — open it directly and it works as normal.
+                  This site asks browsers not to display it inside another page. Nothing
+                  is broken — open it directly and it works as normal.
                 </p>
                 <p className="mt-4 text-sm text-muted-foreground">{project.overview}</p>
                 <p className="mt-4 font-mono text-xs text-primary">{project.url}</p>
@@ -169,8 +195,8 @@ export function LiveProjectPreview({ project, onClose, onSelect }: Props) {
         </BrowserFrame>
 
         <p className="text-center text-xs text-muted-foreground">
-          Embedded sites are shown read-only inside this frame — open in a new tab for the
-          full experience. Press Esc to close.
+          Embedded sites are shown read-only inside this frame — open in a new tab for
+          the full experience. Press Esc to close.
         </p>
       </div>
     </div>

@@ -12,6 +12,8 @@ export type Project = {
   /** Set to false when the site is known to block iframe embedding. */
   embeddable: boolean;
   accent: string;
+  /** Optional static screenshot in /public/previews/. Falls back gracefully if missing. */
+  preview?: string;
 };
 
 export const projects: Project[] = [
@@ -29,6 +31,7 @@ export const projects: Project[] = [
     tech: ["Web development", "Responsive UI", "Deployment"],
     embeddable: true,
     accent: "oklch(0.68 0.19 255)",
+    preview: "/previews/a2ztameer.png",
   },
   {
     slug: "dumpukht-cuisine",
@@ -44,6 +47,7 @@ export const projects: Project[] = [
     tech: ["Web development", "Responsive UI", "Deployment"],
     embeddable: true,
     accent: "oklch(0.72 0.16 60)",
+    preview: "/previews/dumpukht-cuisine.png",
   },
   {
     slug: "smartsols",
@@ -59,6 +63,7 @@ export const projects: Project[] = [
     tech: ["Web development", "Responsive UI", "Deployment"],
     embeddable: true,
     accent: "oklch(0.7 0.16 175)",
+    preview: "/previews/smartsols.png",
   },
   {
     slug: "softerps",
@@ -74,6 +79,7 @@ export const projects: Project[] = [
     tech: ["Web development", "ERP domain", "Deployment"],
     embeddable: true,
     accent: "oklch(0.6 0.2 295)",
+    preview: "/previews/softerps.png",
   },
   {
     slug: "younas-contracting",
@@ -89,6 +95,7 @@ export const projects: Project[] = [
     tech: ["React", "Vercel", "Responsive UI"],
     embeddable: true,
     accent: "oklch(0.66 0.18 30)",
+    preview: "/previews/younas-contracting.png",
   },
 ];
 

@@ -11,8 +11,8 @@ export function Projects({ onPreview }: { onPreview: (p: Project) => void }) {
             FIVE REAL WEBSITES. OPEN THEM FROM HERE.
           </h2>
           <p className="mt-4 max-w-xl text-sm text-muted-foreground">
-            Each panel folds away to reveal the next. Use the live preview to load the actual
-            site inside a browser frame, or open it in a new tab.
+            Each panel folds away to reveal the next. Use the live preview to load the
+            actual site inside a browser frame, or open it in a new tab.
           </p>
         </div>
       </div>

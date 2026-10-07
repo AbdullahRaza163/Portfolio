@@ -40,7 +40,7 @@ function Index() {
   const [preview, setPreview] = useState<Project | null>(null);
 
   return (
-    <main className="relative w-full overflow-x-hidden">
+    <main className="relative w-full overflow-x-clip">
       <Navigation />
       <Hero />
       <About />
